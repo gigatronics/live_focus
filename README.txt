@@ -21,6 +21,7 @@ improved the data that's displayed on screen
 
 
 
+
 Todo: 
 - suspect all sharpness values fits a gaussian, so max only shows the extreme cases. to verify, record all sharpness values, and see if they fits a gaussian curve. 
 - possible to come up a formula based on stats, to determine a range for what sharpness value is acceptable.
@@ -28,6 +29,8 @@ Todo:
 - raise exceptions
 - try JN's pattern
 *- automatic tracking using JN's code? 
+
+
 
 also, try JN's pattern:
 > cd C:\Users\demoPC\Desktop\SuoCalibration_v2.6.0a\oCametry\application\checkerDetect
@@ -46,3 +49,21 @@ interpretation of the results:
 3rd col: 0 if the corner was not seen in the frame (useful for partial occlusion)
 4th col: zero-based row id of the corner (in pixels)
 5th col: zero-based column id of the corner (in pixels)
+
+
+------
+
+
+
+2018-10-12 friday
+
+- git updated 
+- triedto use JN's pattern.. call it directly from python.. turned out that needs 
+- did a screen video capture showing the real time tuning.. "win G" to evoke the screen recording tool.. output file can be found here: C:\Users\demoPC\Videos\Captures
+
+(cont'd) 2nd hypothesis that max_sharpness drifts because sensor noise.. so we need to manually set ini (config files) on the camera... to better understand the python wrapper on ueye sdk, i'm pip graphviz & pythoncallgraph to visualize the functions in the ueye.py file.
+
+
+
+
+
