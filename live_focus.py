@@ -68,9 +68,6 @@ def draw_rect(event,x,y,flags,param):
 
 #def auto_find_roi(image):
    
-    
-
-
 
 def init_cam():
     global width
@@ -95,7 +92,28 @@ def init_cam():
     rect_aoi.s32Width = ueye.int(width)
     rect_aoi.s32Height = ueye.int(height)
     ueye.is_AOI(hcam, ueye.IS_AOI_IMAGE_SET_AOI, rect_aoi, ueye.sizeof(rect_aoi))
-     
+#    
+#    # set parameters, see ids doc for parameter setting flow chart
+#    ueye.is_PixelClock(hcam, ueye.IS_PIXELCLOCK_CMD_GET, exp, ueye.sizeof(pclock))
+#    pclock = ueye.int(220)
+#    ueye.is_PixelClock(hcam, ueye.IS_PIXELCLOCK_CMD_GET, pclock, ueye.sizeof(pclock))
+#    
+#    expo_rng = ueye.is_Exposure(hcam, IS_EXPOSURE_CMD_GET_CAPS, ncap, size(ncap))
+#    ftime_rng = ueye.is_GetFrameTimeRange()
+#    expo_rng = (expo_rng[0], max(expo_rng[1], ftime_rng[1]))
+#    
+#    fps_actual = ueye.cdouble() 
+#    ueye.is_SetFrameRate(hcam, ueye.cdouble(fps_set), byref(fps_actual))
+#    
+#    exp_cap = ueye.uint32()
+#    ueye.is_Exposure(hcam, ueye.IS_EXPOSURE_GET_EXPOSURE_RANGE, ueye.byref(exp_cap), ueye.sizeof(exp_cap))
+#    exp_cur = ueye.cdouble() # in s
+#    ueye.is_Exposure(hcam, ueye.IS_EXPOSURE_SET_EXPOSURE, ueye.byref(exp_cur), ueye.sizeof(exp_cur))
+
+#    ueye.is_SetGainBoost()
+#    ueye.is_Gamma()
+#    ueye.is_SetHWGainFactor()
+#    
     
     # allocate memory
     mem_ptr = ueye.c_mem_p()
@@ -115,14 +133,12 @@ if __name__=="__main__":
     sharps=[] 
     sharp_max=0 
     sharp_smooth=0
-    sharp_med=0
-    
+    sharp_med=0  
    
     width = 3088
     height = 2076
     bitspixel = 24 # for colormode = IS_CM_BGR8_PACKED
-    
-    
+     
     x,y,delx,dely = int(width/4),int(height/4),int(width/8),int(height/8)
     pts=[(0,0),(0,0)]
      
@@ -153,8 +169,8 @@ if __name__=="__main__":
             
         preview = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(preview, 'max = %.2e, median=%.2e ' % (sharp_max, sharp_med), (50,50), font, fontScale=1, color=(0,255,0), thickness=2)
-        cv2.putText(preview, 'sharp_smooth = %.2e' % (sharpness), (50, 100), font, fontScale=1, color=(0,255,0), thickness=2)
+        cv2.putText(preview, 'maximum = %.2e, median=%.2e ' % (sharp_max, sharp_med), (50,50), font, fontScale=1, color=(0,255,0), thickness=2)
+        cv2.putText(preview, 'sharpness = %.2e' % (sharpness), (50, 100), font, fontScale=1, color=(0,255,0), thickness=2)
         cv2.setMouseCallback('preview',draw_rect)
         
         if not ((0,0) in pts):

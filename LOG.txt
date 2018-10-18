@@ -63,6 +63,9 @@ interpretation of the results:
 
 (cont'd) 2nd hypothesis that max_sharpness drifts because sensor noise.. so we need to manually set ini (config files) on the camera... to better understand the python wrapper on ueye sdk, i'm pip graphviz & pythoncallgraph to visualize the functions in the ueye.py file.
 
+LIST OF GRAPHING TOOLS:
+- pythoncallgraph
+- gprof2dot
 
 -------
   
@@ -76,6 +79,28 @@ JN's process:
 - the corner finding algorithm is slow overall, because image  needs to be stored as a file, call exe, read in the image file and process... this is without calculating lines. can be very accurate, but certainly not real-time.
 
  
+
+-----
+
+2018-10-17 wed
+
+JN's process (cont'ed)
+- did poly fit and define a small region around corners and calc sharpness there.. compared it with my crude estimation
+
+live tracking:
+- tried checker corner finding algo from opencv, and turned out it's even slower~
+- tried to use STATPROF, but didn't make it work, so defaulted to timeit.Timer
+- go back to JN's exe, and try to clean up the rect and corners plots
+
+next:
+- find pattern? live tracking
+
+
+
+2018-10-18 thur
+
+live tracking:
+- completed!!!
 
 
 
