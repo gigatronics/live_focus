@@ -17,6 +17,7 @@ def crop2(image,pts):
 #    y=pts[0][1]
 #    dely=pts[1][1]-pts[0][1]
 #    delx=pts[1][0]-pts[0][0]
+    pts = sorted(pts)           # in case the rect is selected from bottom right to top left 
     return image[pts[0][1]:pts[1][1],pts[0][0]:pts[1][0]]
 
 
@@ -35,10 +36,9 @@ def calculate_sharpness(image):
     sharpness=edg.flatten().var()
     return sharpness
 
-def close_all(): 
+def close_all(hcam): 
     ueye.is_StopLiveVideo(hcam, ueye.IS_FORCE_VIDEO_STOP)
     ueye.is_ExitCamera(hcam)
-    cv2.destroyAllWindows()
     print('stop video.. exit camera.. close all windows')    
     
 def select_roi(image):
@@ -68,17 +68,22 @@ def draw_rect(event,x,y,flags,param):
 
 #def auto_find_roi(image):
    
+def calc_sharp_max(img):
+#   if os.path.exists(file):     
+    img = cv2.imread('boardtag25h7_1.bmp')
+    h,w = img.shape[0:2]
+    size = h*w   
+    sharp = calculate_sharpness(img)
+    sharp_per_pix = sharp/size   
+    return ['%.2e %.2e' % (sharp, sharp_per_pix)]
 
-def init_cam():
-    global width
-    global height
-    global bitspixel
-    
-    # initialize camera
-    hcam =ueye.HIDS(0)
-    ret = ueye.is_InitCamera(hcam, None)
-    print("camera intialized %g" % ret)
- 
+
+
+
+
+
+def init_cam(hcam):
+
     # get fps
   #  hcam_fps = is_GetFramesPerSecond(hcam, None)
     
@@ -129,9 +134,16 @@ def init_cam():
     
     
 if __name__=="__main__":
+    global width
+    global height
+    global bitspixel
+    
+    SHARP_MAX = 9.06e+14            # the max iscalculated using calc_sharp_max.py
+    SHARP_MAX_PER_PIX = 6.61e+08
+    
     sharpness=0
     sharps=[] 
-    sharp_max=0 
+    sharp_max=0.1 
     sharp_smooth=0
     sharp_med=0  
    
@@ -140,49 +152,59 @@ if __name__=="__main__":
     bitspixel = 24 # for colormode = IS_CM_BGR8_PACKED
      
     x,y,delx,dely = int(width/4),int(height/4),int(width/8),int(height/8)
-    pts=[(0,0),(0,0)]
-     
+    pts=[(10,10),(0,0)]
+
+    
     # initialize camera
-    mem_ptr = init_cam()
+    hcam =ueye.HIDS(0)
+    ret = ueye.is_InitCamera(hcam, None)
+    print("camera intialized %g" % ret)
+ 
+    mem_ptr = init_cam(hcam)
     
     # get data from camera and display
     lineinc = width * int((bitspixel + 7) / 8)
  
     f = open('data.txt', 'a+')
+    try:
+        while True:
+            img = ueye.get_data(mem_ptr, width, height, bitspixel, lineinc, copy=True)
+            img = np.reshape(img, (height, width, 3))
+            crp = crop2(img,pts)
+            w,h = crp.shape[0:2]
+            gry = gray(crp)      
+          
+            if not ((0,0) in pts):
+                sharpness = calculate_sharpness(gry)
+                sharps.append(sharpness)                # write to a var for dbg
+                f.write(str(sharpness))                 # write to a file for dbg
+                sharp_smooth = np.mean(sharps[-100:])
+                sharp_med = np.median(sharps)  
     
-    while True:
-        img = ueye.get_data(mem_ptr, width, height, bitspixel, lineinc, copy=True)
-        img = np.reshape(img, (height, width, 3))
-        crp = crop2(img,pts)
-        gry = gray(crp)      
-      
-        if not ((0,0) in pts):
-            sharpness = calculate_sharpness(gry)
-            sharps.append(sharpness)                # write to a var for dbg
-            f.write(str(sharpness))                 # write to a file for dbg
-            sharp_smooth = np.mean(sharps[-100:])
-            sharp_med = np.median(sharps)            
-
-            if sharpness > sharp_max:
-                sharp_max =sharpness    
-                print("sharpest: %.2e" % sharp_max)
+                if sharpness > sharp_max:
+                    sharp_max =sharpness    
+                    print("sharpest: %.2e" % sharp_max)
+                
+            preview = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(preview, 'targe1(max) = %.2e, target2(med) = %.2e ' % (sharp_max, sharp_med), (50,50), font, fontScale=1, color=(0,255,0), thickness=2)
+            cv2.putText(preview, 'sharp_meas = %.2e ' % (sharpness), (50, 100), font, fontScale=1, color=(0,255,0), thickness=2)
+            cv2.putText(preview, 'sharp_norm1(phuc) = %.2g, sharp_norm2(rel) = %0.2g ' % (sharpness/SHARP_MAX, sharpness/sharp_max), (50, 150), font, fontScale=1, color=(0,255,0), thickness=2)
+            cv2.putText(preview, 'sharp_norm1_PP(phuc) = %.2g ' % (sharpness/(w*h)/SHARP_MAX_PER_PIX), (50, 200), font, fontScale=1, color=(0,255,0), thickness=2)
+            cv2.setMouseCallback('preview',draw_rect)
             
-        preview = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(preview, 'maximum = %.2e, median=%.2e ' % (sharp_max, sharp_med), (50,50), font, fontScale=1, color=(0,255,0), thickness=2)
-        cv2.putText(preview, 'sharpness = %.2e' % (sharpness), (50, 100), font, fontScale=1, color=(0,255,0), thickness=2)
-        cv2.setMouseCallback('preview',draw_rect)
+            if not ((0,0) in pts):
+                cv2.rectangle(preview, pts[0],pts[1], color=(0,255,0),thickness=2)#, lineType=4)
+    
+            cv2.imshow('preview', preview)        
+            
+            if cv2.waitKey(1) & 0xFF == '27':
+                break
+            
+    finally:
+        close_all(hcam)
+        cv2.destroyAllWindows()
         
-        if not ((0,0) in pts):
-            cv2.rectangle(preview, pts[0],pts[1], color=(0,255,0),thickness=2)#, lineType=4)
-
-        cv2.imshow('preview', preview)        
-        
-        if cv2.waitKey(1) & 0xFF == '27':
-            break
-
-    cv2.destroyAllWindows()
-
 '''
 todo:
    > - add framerate on screen... 

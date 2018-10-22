@@ -12,11 +12,9 @@ Created on Thu Oct 11 16:29:39 2018
 import subprocess
 import csv
 import numpy as np
-     
 import matplotlib.pyplot as plt
 import cv2
 import live_focus
-
 
 
 # need dsc file in the current working dir
@@ -58,7 +56,6 @@ def find_box(corners):
         y.append(pt[1])
     xpad = int((max(x)-min(x))*0.05)
     ypad = int((max(y)-min(y))*0.05)   
-    
     return (((min(x)-xpad),(min(y)-ypad)), ((max(x)+xpad), (max(y)+ypad)))
 #  return (min(pts), max(pts))
 
@@ -113,13 +110,28 @@ def calc_sharpness_roi(corners,img):
     plt.show()
 #    print(sharps) 
     sharp_jn = np.mean(sharps)
-    return sharps,sharp_jn
+    sharp_jn_pp = sharp_jn/(4*d*d)
+    return sharp_jn,sharp_jn_pp
+
+
     
+def calc_sharp_max():
+#   if os.path.exists(file):     
+    img = cv2.imread('boardtag25h7_1.bmp')
+    h,w = img.shape[0:2]
+    size = h*w   
+    sharp = live_focus.calculate_sharpness(img)
+    sharp_per_pix = sharp/size   
+    return sharp, sharp_per_pix
 
 #def auto_track()
 
 
 if __name__ == '__main__':
+    
+    SHARP_MAX = 9.06e+14            # the max iscalculated using calc_sharp_max.py
+    SHARP_MAX_PER_PIX = 6.61e+08
+    
     # set working directories
     cmd_dir = r'C:\Users\demoPC\Desktop\SuoCalibration_v2.6.0a\oCametry\application\checkerDetect'
     cmd = r'\FindCodedChecker.exe '
@@ -143,22 +155,13 @@ if __name__ == '__main__':
     
     
     # poly fit curve
-    z, rng = fit_poly(corners[0:6]) #  only pass corners on a line for fitting purposes
-    
-#    # iterate sharp_jn... in this image.. 
-#    for d in [4,8,16,32]:
-#        print(d)
-#        xp, yp = sample_pts(z, rng) # (2d+1)^2 area
-#        
-#        # calc sharpness from corners
-#        sharps,sharp_jn = calc_sharpness_roi(corners,img)    
-#        sharps_jn.append(sharp_jn)
-#        print(sharp_jn)       
-    
-    
+    z, rng = fit_poly(corners[0:6]) #  only pass corners on a line for fitting purposes  
+   
     # calc sharpness from corners
     xp, yp = sample_pts(z, rng) # (2d+1)^2 area
-    sharps,sharp_jn = calc_sharpness_roi(corners,img)    
+    sharp_jn, sharp_jn_pp = calc_sharpness_roi(corners,img)      
+    
+    
 
     # plot corners to verify
     for corner in corners:
@@ -171,16 +174,19 @@ if __name__ == '__main__':
      
     # mask box region
     crp = live_focus.crop2(img, rect)
-    plt.imshow(crp)
-  #  plt.plot([s for s in sharps_jn])
-  #  plt.show()   
+    plt.subplot(121), plt.imshow(crp)
+    plt.subplot(122), plt.plot([s for s in sharps_jn])
+    plt.show()   
     
     # analyze edges
     sharp_gz = live_focus.calculate_sharpness(crp)
-    print('gina method: %g' % sharp_gz)
-    print('jn method: %g' % sharp_jn)
+    sharp_gz_pp = sharp_gz/(crp.shape[0]*crp.shape[1])
+   
+    sharp_max, sharp_max_per = calc_sharp_max()
     
-    
+    print('gina method - sharp, sharp_pp: %.2g, %.2g' % (sharp_gz/SHARP_MAX, sharp_gz_pp/SHARP_MAX_PER_PIX))
+    print('jn method - sharp, sharp_pp: %.2g, %.2g' % (sharp_jn/SHARP_MAX, sharp_jn_pp/SHARP_MAX_PER_PIX ))
+      
     cv2.imwrite('img_preview.png', img)
     #cv2.waitKey(0)
 
